@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator & Analisis Statistik Deskriptif</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Custom Google Font (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(229, 231, 235, 1);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen pb-12">
+
+    <!-- Header/Navbar -->
+    <header class="bg-indigo-600 text-white shadow-md mb-8">
+        <div class="max-w-7xl mx-auto px-4 py-5 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i data-lucide="bar-chart-2" class="w-8 h-8"></i>
+                <div>
+                    <h1 class="text-xl font-bold leading-none">Statistik.celz</h1>
+                    <p class="text-xs text-indigo-200 mt-1">Analisis Data & Interpretasi Otomatis</p>
+                </div>
+            </div>
+            <button onclick="loadSampleData()" class="px-3 py-1.5 text-xs bg-indigo-500 hover:bg-indigo-700 transition rounded-lg font-medium flex items-center gap-1">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Muat Data Contoh
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+        <!-- Left Column: Input Panel -->
+        <section class="lg:col-span-4 space-y-6">
+            <div class="glass-card rounded-2xl p-6 shadow-sm">
+                <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                    <i data-lucide="file-input" class="w-5 h-5 text-indigo-600"></i> Input Data
+                </h2>
+                
+                <!-- Input Mode Tabs -->
+                <div class="mb-4">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Pilih Jenis Data</label>
+                    <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+                        <button id="typeSampleBtn" onclick="setDataType('sample')" class="py-1.5 text-xs font-medium rounded-lg bg-white shadow-sm text-indigo-600">Sampel (s)</button>
+                        <button id="typePopBtn" onclick="setDataType('population')" class="py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900">Populasi (σ)</button>
+                    </div>
+                </div>
+
+                <!-- Text Area Input -->
+                <div class="mb-4">
+                    <label for="dataInput" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Masukan Angka (Pisahkan dengan koma, spasi, atau baris baru)</label>
+                    <textarea id="dataInput" rows="7" placeholder="Contoh: 75, 80, 85, 90, 65, 70, 88, 92, 78, 85" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm font-mono transition"></textarea>
+                </div>
+
+                <!-- Upload File CSV/TXT -->
+                <div class="mb-6">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Atau Upload File (.csv / .txt)</label>
+                    <input type="file" id="fileInput" accept=".csv, .txt" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"/>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex gap-3">
+                    <button onclick="processData()" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-xl shadow-md transition flex justify-center items-center gap-2">
+                        <i data-lucide="calculator" class="w-4 h-4"></i> Hitung Statistik
+                    </button>
+                    <button onclick="clearData()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium text-sm rounded-xl transition">
+                        Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Data Summary Box -->
+            <div id="quickSummaryBox" class="hidden glass-card rounded-2xl p-6 shadow-sm border-l-4 border-indigo-500">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Ringkasan Cepat</h3>
+                <div class="grid grid-cols-2 gap-4 mt-3">
+                    <div>
+                        <p class="text-xs text-slate-500">Jumlah Data (n)</p>
+                        <p id="quickN" class="text-xl font-bold text-slate-800">0</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500">Total Sum (∑X)</p>
+                        <p id="quickSum" class="text-xl font-bold text-slate-800">0</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Results & Analytics -->
+        <section class="lg:col-span-8 space-y-6">
+            
+            <!-- Empty State Message -->
+            <div id="emptyState" class="glass-card rounded-2xl p-12 text-center shadow-sm">
+                <i data-lucide="pie-chart" class="w-16 h-16 text-slate-300 mx-auto mb-4"></i>
+                <h3 class="text-lg font-semibold text-slate-700">Belum Ada Data Dihitung</h3>
+                <p class="text-slate-500 text-sm mt-1 max-w-md mx-auto">Silakan masukkan data angka di panel sebelah kiri atau klik tombol "Muat Data Contoh" untuk mencoba.</p>
+            </div>
+
+            <!-- Results Section (Hidden by default) -->
+            <div id="resultsContainer" class="hidden space-y-6">
+
+                <!-- 1. Key Metrics Overview Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="glass-card rounded-xl p-4 shadow-sm">
+                        <p class="text-xs font-medium text-slate-500">Rata-rata (Mean)</p>
+                        <p id="valMean" class="text-2xl font-bold text-indigo-600 mt-1">-</p>
+                    </div>
+                    <div class="glass-card rounded-xl p-4 shadow-sm">
+                        <p class="text-xs font-medium text-slate-500">Nilai Tengah (Median)</p>
+                        <p id="valMedian" class="text-2xl font-bold text-slate-800 mt-1">-</p>
+                    </div>
+                    <div class="glass-card rounded-xl p-4 shadow-sm">
+                        <p class="text-xs font-medium text-slate-500">Modus</p>
+                        <p id="valMode" class="text-2xl font-bold text-slate-800 mt-1">-</p>
+                    </div>
+                    <div class="glass-card rounded-xl p-4 shadow-sm">
+                        <p class="text-xs font-medium text-slate-500">Deviasi Standar</p>
+                        <p id="valStdDev" class="text-2xl font-bold text-emerald-600 mt-1">-</p>
+                    </div>
+                </div>
+
+                <!-- 2. Detailed Statistics Tables -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Ukuran Pemusatan & Penyebaran -->
+                    <div class="glass-card rounded-2xl p-5 shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                            <i data-lucide="target" class="w-4 h-4 text-indigo-500"></i> Pemusatan & Dispersi
+                        </h3>
+                        <table class="w-full text-sm text-left">
+                            <tbody class="divide-y divide-slate-100">
+                                <tr><td class="py-2 text-slate-500">Jangkauan (Range)</td><td id="valRange" class="py-2 font-semibold text-right">-</td></tr>
+                                <tr><td class="py-2 text-slate-500">Nilai Minimum</td><td id="valMin" class="py-2 font-semibold text-right">-</td></tr>
+                                <tr><td class="py-2 text-slate-500">Nilai Maksimum</td><td id="valMax" class="py-2 font-semibold text-right">-</td></tr>
+                                <tr><td class="py-2 text-slate-500">Varians (<span id="varSymbol">s²</span>)</td><td id="valVariance" class="py-2 font-semibold text-right">-</td></tr>
+                                <tr><td class="py-2 text-slate-500">Standar Deviasi (<span id="stdSymbol">s</span>)</td><td id="valStdDevFull" class="py-2 font-semibold text-right">-</td></tr>
+                                <tr><td class="py-2 text-slate-500">Koefisien Variasi (CV)</td><td id="valCV" class="py-2 font-semibold text-right">-</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Kuartil & Bentuk Distribusi -->
+                    <div class="glass-card rounded-2xl p-5 shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                            <i data-lucide="layers" class="w-4 h-4 text-indigo-500"></i> Kuartil & Bentuk Distribusi
+                        </h3>
+                        <table class="w-full text-sm text-left">
+                            <tbody class="divide-y divide-slate-100">
+                                <tr><td class="py-2 text-slate-500">Kuartil Bawah (Q1)</td><td id="valQ1" class="py-2 font-semibold text-right">-</td></tr>
+                                <tr><td class="py-2 text-slate-500">Kuartil Tengah (Q2)</td><td id="valQ2" class="py-2 font-semibold text-right">-</td></tr>
+                                <tr><td class="py-2 text-slate-500">Kuartil Atas (Q3)</td><td id="valQ3" class="py-2 font-semibold text-right">-</td></tr>
+                                <tr><td class="py-2 text-slate-500">Jangkauan Interkuartil (IQR)</td><td id="valIQR" class="py-2 font-semibold text-right">-</td></tr>
+                                <tr><td class="py-2 text-slate-500">Kemiringan (Skewness)</td><td id="valSkewness" class="py-2 font-semibold text-right">-</td></tr>
+                                <tr><td class="py-2 text-slate-500">Keruncingan (Kurtosis)</td><td id="valKurtosis" class="py-2 font-semibold text-right">-</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 3. Visualization Charts -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="glass-card rounded-2xl p-5 shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                            <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-500"></i> Distribusi Frekuensi (Histogram)
+                        </h3>
+                        <div class="relative h-64">
+                            <canvas id="histogramChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="glass-card rounded-2xl p-5 shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                            <i data-lucide="line-chart" class="w-4 h-4 text-indigo-500"></i> Plot Sebaran Data
+                        </h3>
+                        <div class="relative h-64">
+                            <canvas id="lineChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Automatic Conclusion & Interpretation Card -->
+                <div class="glass-card rounded-2xl p-6 shadow-sm border-l-4 border-indigo-600 bg-gradient-to-r from-indigo-50/40 to-white">
+                    <h3 class="text-base font-bold text-slate-900 mb-3 flex items-center gap-2">
+                        <i data-lucide="brain-circuit" class="w-5 h-5 text-indigo-600"></i> Kesimpulan & Interpretasi Otomatis
+                    </h3>
+                    <div id="conclusionContent" class="space-y-3 text-sm text-slate-700 leading-relaxed">
+                        <!-- Content generated dynamically -->
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Global variables
+        let dataType = 'sample'; // 'sample' or 'population'
+        let histogramChartInstance = null;
+        let lineChartInstance = null;
+
+        // Initialize icons on load
+        window.onload = function() {
+            lucide.createIcons();
+            
+            // File Upload Listener
+            document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+        };
+
+        // Tab Switching for Sample vs Population
+        function setDataType(type) {
+            dataType = type;
+            const sampleBtn = document.getElementById('typeSampleBtn');
+            const popBtn = document.getElementById('typePopBtn');
+
+            if (type === 'sample') {
+                sampleBtn.className = "py-1.5 text-xs font-medium rounded-lg bg-white shadow-sm text-indigo-600";
+                popBtn.className = "py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900";
+                document.getElementById('varSymbol').innerText = "s²";
+                document.getElementById('stdSymbol').innerText = "s";
+            } else {
+                popBtn.className = "py-1.5 text-xs font-medium rounded-lg bg-white shadow-sm text-indigo-600";
+                sampleBtn.className = "py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900";
+                document.getElementById('varSymbol').innerText = "σ²";
+                document.getElementById('stdSymbol').innerText = "σ";
+            }
+
+            // Recalculate if data exists
+            if (document.getElementById('dataInput').value.trim() !== '') {
+                processData();
+            }
+        }
+
+        // Load Sample Data
+        function loadSampleData() {
+            const sampleValues = [68, 75, 82, 85, 90, 85, 78, 92, 88, 70, 85, 95, 60, 74, 88, 82, 85, 91];
+            document.getElementById('dataInput').value = sampleValues.join(', ');
+            processData();
+        }
+
+        // File Reader logic
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                document.getElementById('dataInput').value = event.target.result;
+                processData();
+            };
+            reader.readAsText(file);
+        }
+
+        // Clear all inputs and state
+        function clearData() {
+            document.getElementById('dataInput').value = '';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('emptyState').classList.remove('hidden');
+            document.getElementById('resultsContainer').classList.add('hidden');
+            document.getElementById('quickSummaryBox').classList.add('hidden');
+
+            if (histogramChartInstance) histogramChartInstance.destroy();
+            if (lineChartInstance) lineChartInstance.destroy();
+        }
+
+        // Main Data Processing Function
+        function processData() {
+            const rawText = document.getElementById('dataInput').value;
+            // Split by commas, newlines, spaces, tabs
+            const numbers = rawText
+                .split(/[\s,\n]+/)
+                .map(item => parseFloat(item.replace(',', '.')))
+                .filter(num => !isNaN(num));
+
+            if (numbers.length === 0) {
+                alert("Silakan masukkan data angka yang valid!");
+                return;
+            }
+
+            // Hide empty state, show results
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('resultsContainer').classList.remove('hidden');
+            document.getElementById('quickSummaryBox').classList.remove('hidden');
+
+            // Sort numbers ascending
+            numbers.sort((a, b) => a - b);
+            const n = numbers.length;
+
+            // Basic Calculations
+            const sum = numbers.reduce((acc, curr) => acc + curr, 0);
+            const mean = sum / n;
+            const min = numbers[0];
+            const max = numbers[n - 1];
+            const range = max - min;
+
+            // Median & Quartiles (Interpolation Method)
+            const median = calculateQuantile(numbers, 0.5);
+            const q1 = calculateQuantile(numbers, 0.25);
+            const q3 = calculateQuantile(numbers, 0.75);
+            const iqr = q3 - q1;
+
+            // Mode Calculation
+            const frequency = {};
+            let maxFreq = 0;
+            numbers.forEach(num => {
+                frequency[num] = (frequency[num] || 0) + 1;
+                if (frequency[num] > maxFreq) maxFreq = frequency[num];
+            });
+
+            let modes = [];
+            if (maxFreq > 1) {
+                for (let key in frequency) {
+                    if (frequency[key] === maxFreq) {
+                        modes.push(parseFloat(key));
+                    }
+                }
+            }
+
+            const modeText = modes.length === 0 
+                ? "Tidak ada" 
+                : (modes.length > 3 ? "Multimodal (>3)" : modes.join(', '));
+
+            // Variance & Standard Deviation
+            const sumSquaredDiff = numbers.reduce((acc, curr) => acc + Math.pow(curr - mean, 2), 0);
+            const divisor = dataType === 'sample' ? (n > 1 ? n - 1 : 1) : n;
+            const variance = sumSquaredDiff / divisor;
+            const stdDev = Math.sqrt(variance);
+            const cv = (stdDev / mean) * 100; // Coefficient of variation (%)
+
+            // Skewness & Kurtosis
+            const m3 = numbers.reduce((acc, curr) => acc + Math.pow(curr - mean, 3), 0) / n;
+            const m4 = numbers.reduce((acc, curr) => acc + Math.pow(curr - mean, 4), 0) / n;
+            const m2 = numbers.reduce((acc, curr) => acc + Math.pow(curr - mean, 2), 0) / n;
+            
+            const skewness = m3 / Math.pow(m2, 1.5);
+            const kurtosis = (m4 / Math.pow(m2, 2)) - 3; // Excess Kurtosis
+
+            // Update Quick Summary
+            document.getElementById('quickN').innerText = n;
+            document.getElementById('quickSum').innerText = formatNum(sum);
+
+            // Update Overview Cards
+            document.getElementById('valMean').innerText = formatNum(mean);
+            document.getElementById('valMedian').innerText = formatNum(median);
+            document.getElementById('valMode').innerText = modeText;
+            document.getElementById('valStdDev').innerText = formatNum(stdDev);
+
+            // Update Detailed Tables
+            document.getElementById('valRange').innerText = formatNum(range);
+            document.getElementById('valMin').innerText = formatNum(min);
+            document.getElementById('valMax').innerText = formatNum(max);
+            document.getElementById('valVariance').innerText = formatNum(variance);
+            document.getElementById('valStdDevFull').innerText = formatNum(stdDev);
+            document.getElementById('valCV').innerText = formatNum(cv) + "%";
+
+            document.getElementById('valQ1').innerText = formatNum(q1);
+            document.getElementById('valQ2').innerText = formatNum(median);
+            document.getElementById('valQ3').innerText = formatNum(q3);
+            document.getElementById('valIQR').innerText = formatNum(iqr);
+            document.getElementById('valSkewness').innerText = formatNum(skewness);
+            document.getElementById('valKurtosis').innerText = formatNum(kurtosis);
+
+            // Render Visualizations
+            renderHistogram(numbers, min, max);
+            renderLineChart(numbers);
+
+            // Generate Interpretations
+            generateConclusion({
+                n, mean, median, modes, stdDev, cv, skewness, kurtosis, min, max, iqr
+            });
+        }
+
+        // Helper: Format Decimal Numbers
+        function formatNum(val) {
+            if (isNaN(val)) return "-";
+            return Number.isInteger(val) ? val : val.toFixed(2);
+        }
+
+        // Helper: Quantile Calculation
+        function calculateQuantile(sortedArr, q) {
+            const pos = (sortedArr.length - 1) * q;
+            const base = Math.floor(pos);
+            const rest = pos - base;
+            if (sortedArr[base + 1] !== undefined) {
+                return sortedArr[base] + rest * (sortedArr[base + 1] - sortedArr[base]);
+            } else {
+                return sortedArr[base];
+            }
+        }
+
+        // Render Histogram Chart
+        function renderHistogram(numbers, min, max) {
+            const ctx = document.getElementById('histogramChart').getContext('2d');
+            if (histogramChartInstance) histogramChartInstance.destroy();
+
+            // Calculate Sturges rule for bin count
+            const k = Math.max(5, Math.ceil(1 + 3.322 * Math.log10(numbers.length)));
+            const binWidth = (max - min) / k || 1;
+
+            let bins = Array(k).fill(0);
+            let labels = [];
+
+            for (let i = 0; i < k; i++) {
+                let lower = min + (i * binWidth);
+                let upper = lower + binWidth;
+                labels.push(`${formatNum(lower)} - ${formatNum(upper)}`);
+            }
+
+            numbers.forEach(num => {
+                let binIndex = Math.floor((num - min) / binWidth);
+                if (binIndex >= k) binIndex = k - 1; // handle upper bound
+                bins[binIndex]++;
+            });
+
+            histogramChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Frekuensi',
+                        data: bins,
+                        backgroundColor: 'rgba(79, 70, 229, 0.6)',
+                        borderColor: 'rgba(79, 70, 229, 1)',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                        x: { ticks: { font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        // Render Line Plot
+        function renderLineChart(numbers) {
+            const ctx = document.getElementById('lineChart').getContext('2d');
+            if (lineChartInstance) lineChartInstance.destroy();
+
+            lineChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: numbers.map((_, i) => `#${i + 1}`),
+                    datasets: [{
+                        label: 'Nilai Data',
+                        data: numbers,
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: false }
+                    }
+                }
+            });
+        }
+
+        // Automatic Conclusion Generator
+        function generateConclusion(stats) {
+            const container = document.getElementById('conclusionContent');
+            let html = '';
+
+            // 1. Central Tendency Analysis
+            let skewDesc = "";
+            if (Math.abs(stats.skewness) < 0.5) {
+                skewDesc = "distribusi data cenderung **simetris (normal)**.";
+            } else if (stats.skewness > 0.5) {
+                skewDesc = "distribusi data **menceng ke kanan (positive skewness)**, artinya sebagian besar data bernilai lebih kecil dari rata-rata dengan beberapa nilai tinggi di ekor kanan.";
+            } else {
+                skewDesc = "distribusi data **menceng ke kiri (negative skewness)**, artinya sebagian besar data bernilai lebih besar dari rata-rata dengan beberapa nilai rendah di ekor kiri.";
+            }
+
+            html += `<p>• <strong>Pemusatan Data:</strong> Nilai rata-rata data adalah <strong>${formatNum(stats.mean)}</strong> dengan nilai tengah (median) <strong>${formatNum(stats.median)}</strong>. Karena nilai kemiringan (skewness) adalah ${formatNum(stats.skewness)}, maka ${skewDesc}</p>`;
+
+            // 2. Variability Analysis
+            let cvDesc = "";
+            if (stats.cv < 15) {
+                cvDesc = "rendah, menandakan data relatif **homogen** (seragam).";
+            } else if (stats.cv <= 30) {
+                cvDesc = "sedang, menunjukkan variasi nilai data yang moderat.";
+            } else {
+                cvDesc = "tinggi, menandakan data sangat **heterogen** (beragam) dan memiliki variabilitas yang besar.";
+            }
+
+            html += `<p>• <strong>Penyebaran Data:</strong> Rentang data berkisar antara <strong>${formatNum(stats.min)}</strong> hingga <strong>${formatNum(stats.max)}</strong> (jangkauan: ${formatNum(stats.max - stats.min)}). Nilai koefisien variasi (CV) sebesar <strong>${formatNum(stats.cv)}%</strong> tergolong ${cvDesc}</p>`;
+
+            // 3. Kurtosis / Shape Analysis
+            let kurtDesc = "";
+            if (Math.abs(stats.kurtosis) < 0.5) {
+                kurtDesc = "berbentuk **mesokurtik** (keruncingan normal).";
+            } else if (stats.kurtosis > 0.5) {
+                kurtDesc = "berbentuk **leptokurtik** (puncak relatif lancip dan memiliki ekor tebal/kemungkinan ada nilai ekstrem).";
+            } else {
+                kurtDesc = "berbentuk **platikurtik** (puncak relatif landai/mendatar).";
+            }
+
+            html += `<p>• <strong>Bentuk Keruncingan:</strong> Nilai excess kurtosis sebesar <strong>${formatNum(stats.kurtosis)}</strong>, yang menunjukkan bahwa kurva distribusi ${kurtDesc}</p>`;
+
+            // 4. Executive Summary / Conclusion
+            html += `<div class="mt-4 p-3 bg-white/80 rounded-xl border border-indigo-100 font-medium text-indigo-900">
+                <strong>Rangkuman Kesimpulan:</strong> Secara keseluruhan, himpunan data ini memiliki rata-rata <strong>${formatNum(stats.mean)}</strong> dengan tingkat keberagaman data sebesar <strong>${formatNum(stats.cv)}%</strong>. indikator statistik menunjukkan pola penyebaran data yang ${stats.cv < 20 ? 'stabil dan terpusat dengan baik' : 'cukup tersebar dan bervariasi'}.
+            </div>`;
+
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
